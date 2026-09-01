@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Dashboard de Incidencias Operativas</title>
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <!-- Tu hoja de estilos -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <div class="dashboard">
+
+        <!-- ==================== ENCABEZADO ==================== -->
+        <header>
+            <h1>🚛 Dashboard de Incidencias Operativas</h1>
+            <p>Datos actualizados desde Google Sheets</p>
+        </header>
+
+        <!-- ==================== FILA DE KPI ==================== -->
+        <section class="kpi-row">
+            <div class="kpi-card">
+                <span class="kpi-label">Incidentes Totales</span>
+                <span class="kpi-value" id="totalIncidentes">--</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">Viajes Totales</span>
+                <span class="kpi-value" id="totalViajes">--</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">% Incidencias / Viajes</span>
+                <span class="kpi-value" id="porcentajeIncidencias">--%</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">Última actualización</span>
+                <span class="kpi-value" id="ultimaActualizacion">--</span>
+            </div>
+        </section>
+
+        <!-- ==================== FILA 1: TABLA Y GRÁFICO ==================== -->
+        <section class="row two-cols">
+            <div class="col">
+                <div class="card">
+                    <h2>🏆 Top 10 Infractores</h2>
+                    <div class="table-wrapper">
+                        <table id="tablaInfractores">
+                            <thead>
+                                <tr>
+                                    <th>Infractor</th>
+                                    <th>Exceso de velocidad</th>
+                                    <th>Detención no autorizada</th>
+                                    <th>No usar cinturón</th>
+                                    <th>Negarse EPP</th>
+                                    <th>Fuera de horario</th>
+                                    <th>Incumpl. políticas</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoInfractores">
+                                <!-- Se llena con JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <h2>📊 Infracciones por Tipo</h2>
+                    <canvas id="chartInfracciones"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== FILA 2: ALERTAS GPS ==================== -->
+        <section class="row one-col">
+            <div class="col">
+                <div class="card">
+                    <h2>🚨 Alertas GPS</h2>
+                    <div class="table-wrapper">
+                        <table id="tablaAlertas">
+                            <thead>
+                                <tr>
+                                    <th>Nombre de notificación</th>
+                                    <th>Record Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cuerpoAlertas">
+                                <!-- Se llena con JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== FILA 3: VIAJES ==================== -->
+        <section class="row two-cols">
+            <div class="col">
+                <div class="card">
+                    <h2>🚚 Viajes por Razón Social</h2>
+                    <canvas id="chartViajes"></canvas>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card">
+                    <h2>📈 Viajes vs Incidencias</h2>
+                    <div id="infoViajes">
+                        <p><strong>Viajes METGA:</strong> <span id="viajesMetga">--</span></p>
+                        <p><strong>Viajes TESON:</strong> <span id="viajesTeson">--</span></p>
+                        <p><strong>Incidencias / Viajes:</strong> <span id="incidenciasPorViaje">--%</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script src="script.js"></script>
+</body>
+</html>
