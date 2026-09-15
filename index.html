@@ -6,6 +6,7 @@
   <title>Dashboard KPIs - METGA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <style>
     .chart-container { position: relative; height: 320px; }
     .chart-sm { position: relative; height: 220px; }
@@ -125,24 +126,28 @@
 
     <!-- Sección 1: Incidentes -->
     <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">📋 Análisis de Incidentes</h2>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Mes</h3>
-        <div class="chart-container"><canvas id="chart-inc-mes"></canvas></div>
-      </div>
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Tipos de Incidente</h3>
-        <div class="chart-container"><canvas id="chart-tipos"></canvas></div>
-      </div>
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Unidad (Top 10)</h3>
-        <div class="chart-container"><canvas id="chart-inc-unidad"></canvas></div>
-      </div>
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Infractores (por tipo)</h3>
-        <div class="chart-container"><canvas id="chart-infractores"></canvas></div>
-      </div>
-    </div>
+   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Mes</h3>
+    <div class="chart-container"><canvas id="chart-inc-mes"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Tipos de Incidente</h3>
+    <div class="chart-container"><canvas id="chart-tipos"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Unidad (Top 10)</h3>
+    <div class="chart-container"><canvas id="chart-inc-unidad"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Infractores (por tipo)</h3>
+    <div class="chart-container"><canvas id="chart-infractores"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Infractores de Exceso de Velocidad (Reportes)</h3>
+    <div class="chart-container"><canvas id="chart-infractores-vel"></canvas></div>
+  </div>
+</div>
 
     <!-- Sección 2: Operadores -->
     <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">👤 Análisis de Operadores</h2>
@@ -174,26 +179,34 @@
       </div>
     </div>
 
-    <!-- Sección 4: Alertas GPS -->
-    <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">📡 Análisis de Alertas GPS</h2>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Tipo</h3>
-        <div class="chart-container"><canvas id="chart-alertas-tipo"></canvas></div>
-      </div>
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Unidades con más Alertas</h3>
-        <div class="chart-container"><canvas id="chart-alertas-unidad"></canvas></div>
-      </div>
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Mes</h3>
-        <div class="chart-container"><canvas id="chart-alertas-mes"></canvas></div>
-      </div>
-      <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Distribución de Velocidad (Excesos)</h3>
-        <div class="chart-container"><canvas id="chart-vel-hist"></canvas></div>
-      </div>
-    </div>
+   <!-- Sección 4: Alertas GPS -->
+<h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">📡 Análisis de Alertas GPS</h2>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Tipo</h3>
+    <div class="chart-container"><canvas id="chart-alertas-tipo"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Unidades con más Alertas</h3>
+    <div class="chart-container"><canvas id="chart-alertas-unidad"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Mes</h3>
+    <div class="chart-container"><canvas id="chart-alertas-mes"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">Distribución de Velocidad (Excesos)</h3>
+    <div class="chart-container"><canvas id="chart-vel-hist"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Velocidades Máximas por Unidad</h3>
+    <div class="chart-container"><canvas id="chart-vel-max-unidad"></canvas></div>
+  </div>
+  <div class="bg-white p-5 rounded-lg shadow">
+    <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Unidades con más Excesos Registrados</h3>
+    <div class="chart-container"><canvas id="chart-excesos-unidad"></canvas></div>
+  </div>
+</div>
 
     <!-- Sección 5: Cumplimiento -->
     <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">🛡️ Cumplimiento de Políticas</h2>
