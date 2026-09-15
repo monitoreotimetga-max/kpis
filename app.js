@@ -2,7 +2,7 @@
 // CONFIGURACIÓN
 // ============================================
 // ⚠️ CAMBIA "TU-USUARIO" POR TU USUARIO REAL DE GITHUB
-const BASE_URL = "https://monitoreotimetga-max.github.io/kpis/data";
+const BASE_URL = "./data";
 
 // ============================================
 // ESTADO GLOBAL
