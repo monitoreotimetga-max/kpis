@@ -21,6 +21,24 @@ const state = {
 
 // Colores
 const COLORS = ["#3b82f6","#ef4444","#f59e0b","#10b981","#8b5cf6","#ec4899","#06b6d4","#f97316","#84cc16","#6366f1","#14b8a6","#eab308"];
+// Registrar plugin de etiquetas de datos
+if (typeof ChartDataLabels !== "undefined") {
+  Chart.register(ChartDataLabels);
+}
+// Configuración global de Chart.js
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.datalabels = {
+  color: "#1e293b",
+  font: { weight: "600", size: 10 },
+  anchor: "end",
+  align: "end",
+  formatter: (value) => {
+    if (value === 0) return "";
+    if (typeof value === "number" && value > 999) return (value / 1000).toFixed(1) + "k";
+    return value;
+  }
+};
 
 // ============================================
 // CARGA DE DATOS
@@ -167,7 +185,7 @@ function renderizarTodo() {
 // KPIs
 // ============================================
 function renderKPIs(f) {
-  const viajesValidos = f.viajes.filter(v => !v.es_vacio_spot);
+  const viajesValidos = f.viajes; // Incluir todos, incluso VACIO SPOT
   const total = viajesValidos.length;
   const incidentes = f.reportes.length;
   const alertas = f.alertas.length;
@@ -202,8 +220,13 @@ function renderKPIs(f) {
   document.getElementById("kpi-top-razon").textContent = `${topRazon} (${(topTasa*100).toFixed(1)}%)`;
 
   // Velocidad máxima
-  const velMax = alertas > 0 ? Math.max(...f.alertas.map(a => a.velocidad_kmh || 0)) : 0;
-  document.getElementById("kpi-vel-max").textContent = velMax.toLocaleString();
+  const velocidades = f.alertas.map(a => a.velocidad_kmh || 0).filter(v => v > 0);
+const velMax = velocidades.length > 0 ? Math.max(...velocidades) : 0;
+const velMaxReal = velocidades.filter(v => v <= 180).length > 0 
+  ? Math.max(...velocidades.filter(v => v <= 180)) 
+  : 0;
+document.getElementById("kpi-vel-max").innerHTML = 
+  `${velMaxReal.toLocaleString()} <span style="font-size:11px;color:#94a3b8;font-weight:400" title="Valor atípico registrado: ${velMax} km/h (probable error de GPS)">(máx: ${velMax})</span>`;
 
   const inc100 = total > 0 ? (incidentes / total * 100).toFixed(1) : "0";
   document.getElementById("kpi-inc-100").textContent = inc100;
@@ -224,7 +247,7 @@ function crearChart(id, config) {
 }
 
 function renderGraficos(f) {
-  const viajesValidos = f.viajes.filter(v => !v.es_vacio_spot);
+  const viajesValidos = f.viajes;
 
   // ----- 1. Incidentes por Mes -----
   const mesesOrden = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -238,6 +261,95 @@ function renderGraficos(f) {
       datasets: [{ label: "Incidentes", data: mesesConDatos.map(m => incMes[m]), backgroundColor: "#ef4444", borderRadius: 4 }]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      // ----- 16. Top 10 Velocidades Máximas por Unidad (Alertas GPS) -----
+  const velMaxUnidad = {};
+  f.alertas.forEach(a => {
+    if (!a.unidad_corta || !a.velocidad_kmh) return;
+    // Ignorar outliers > 180 km/h (probables errores de GPS)
+    if (a.velocidad_kmh > 180) return;
+    const u = a.unidad_corta;
+    if (!velMaxUnidad[u] || a.velocidad_kmh > velMaxUnidad[u]) {
+      velMaxUnidad[u] = a.velocidad_kmh;
+    }
+  });
+  const topVelMax = Object.entries(velMaxUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  crearChart("chart-vel-max-unidad", {
+    type: "bar",
+    data: {
+      labels: topVelMax.map(u => u[0]),
+      datasets: [{
+        label: "Velocidad Máx (km/h)",
+        data: topVelMax.map(u => u[1]),
+        backgroundColor: "#dc2626",
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: "end", align: "right", color: "#fff" }
+      }
+    }
+  });
+
+  // ----- 17. Top 10 Unidades con más Excesos Registrados -----
+  const excesosUnidad = {};
+  f.alertas.forEach(a => {
+    if ((a.tipo_alerta_normalizado || "").includes("exceso_velocidad")) {
+      const u = a.unidad_corta || "N/A";
+      excesosUnidad[u] = (excesosUnidad[u] || 0) + 1;
+    }
+  });
+  const topExcesosUnidad = Object.entries(excesosUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  crearChart("chart-excesos-unidad", {
+    type: "bar",
+    data: {
+      labels: topExcesosUnidad.map(u => u[0]),
+      datasets: [{
+        label: "Excesos registrados",
+        data: topExcesosUnidad.map(u => u[1]),
+        backgroundColor: "#f97316",
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // ----- 18. Top 10 Infractores de Exceso de Velocidad (Reportes) -----
+  const infractoresVel = {};
+  f.reportes.forEach(r => {
+    if ((r.tipo_reporte || "").toLowerCase().includes("exceso de velocidad")) {
+      const op = r.operador || "N/A";
+      infractoresVel[op] = (infractoresVel[op] || 0) + 1;
+    }
+  });
+  const topInfractoresVel = Object.entries(infractoresVel).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  crearChart("chart-infractores-vel", {
+    type: "bar",
+    data: {
+      labels: topInfractoresVel.map(o => o[0].substring(0, 25)),
+      datasets: [{
+        label: "Reportes de exceso",
+        data: topInfractoresVel.map(o => o[1]),
+        backgroundColor: "#dc2626",
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    }
+  });
   });
 
   // ----- 2. Tipos de Incidente -----
