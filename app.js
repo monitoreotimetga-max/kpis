@@ -1,7 +1,6 @@
 // ============================================
 // CONFIGURACIÓN
 // ============================================
-// ⚠️ CAMBIA "TU-USUARIO" POR TU USUARIO REAL DE GITHUB
 const BASE_URL = "./data";
 
 // ============================================
@@ -19,13 +18,16 @@ const state = {
   tabla: { pagina: 1, porPagina: 50, orden: { campo: null, asc: true }, filtroTexto: "" },
 };
 
-// Colores
 const COLORS = ["#3b82f6","#ef4444","#f59e0b","#10b981","#8b5cf6","#ec4899","#06b6d4","#f97316","#84cc16","#6366f1","#14b8a6","#eab308"];
-// Registrar plugin de etiquetas de datos
+const MESES_ORDEN = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const VEL_MAX_VALIDA = 140; // km/h - arriba de esto son outliers del GPS
+
+// ============================================
+// REGISTRAR PLUGIN DE ETIQUETAS
+// ============================================
 if (typeof ChartDataLabels !== "undefined") {
   Chart.register(ChartDataLabels);
 }
-// Configuración global de Chart.js
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size = 11;
 Chart.defaults.plugins.datalabels = {
@@ -34,11 +36,31 @@ Chart.defaults.plugins.datalabels = {
   anchor: "end",
   align: "end",
   formatter: (value) => {
-    if (value === 0) return "";
+    if (value === 0 || value === null || value === undefined) return "";
     if (typeof value === "number" && value > 999) return (value / 1000).toFixed(1) + "k";
     return value;
   }
 };
+
+// ============================================
+// UTILIDADES
+// ============================================
+function getRazonAlerta(unidadCorta) {
+  if (!unidadCorta) return "N/A";
+  return unidadCorta.startsWith("TR-") ? "METGA" : "TESON";
+}
+
+function mesNumeroANombre(fechaISO) {
+  if (!fechaISO) return null;
+  const mes = parseInt(fechaISO.slice(5, 7));
+  return MESES_ORDEN[mes - 1];
+}
+
+function setEstado(txt, clase) {
+  const el = document.getElementById("estado-carga");
+  el.textContent = txt;
+  el.className = "text-xs " + clase;
+}
 
 // ============================================
 // CARGA DE DATOS
@@ -57,13 +79,9 @@ async function cargarDatos() {
     state.reportes = reportes;
     state.alertasIndex = alertasIndex;
 
-    // Llenar filtros
     llenarFiltros();
-
-    // Renderizar primero sin alertas
     renderizarTodo();
 
-    // Cargar alertas en segundo plano
     setEstado("Cargando alertas GPS...", "text-yellow-400");
     document.getElementById("progreso").classList.remove("hidden");
 
@@ -83,7 +101,6 @@ async function cargarDatos() {
         `Cargando alertas GPS: ${i + 1}/${meses.length} meses (${alertasAcumuladas.length.toLocaleString()} alertas)`;
     }
 
-    // Renderizar con alertas
     renderizarTodo();
 
     document.getElementById("progreso").classList.add("hidden");
@@ -95,23 +112,19 @@ async function cargarDatos() {
   }
 }
 
-function setEstado(txt, clase) {
-  const el = document.getElementById("estado-carga");
-  el.textContent = txt;
-  el.className = "text-xs " + clase;
-}
-
 // ============================================
 // LLENAR FILTROS
 // ============================================
 function llenarFiltros() {
-  const razones = [...new Set(state.viajes.map(v => v.razon_social).filter(Boolean))].sort();
+  const razones = ["METGA", "TESON"];
   const meses = [...new Set(state.viajes.map(v => v.mes).filter(Boolean))];
   const operadores = [...new Set(state.reportes.map(r => r.operador).filter(Boolean))].sort();
-  const unidades = [...new Set(state.reportes.map(r => r.unidad).filter(Boolean))].sort();
+  const unidades = [...new Set([
+    ...state.reportes.map(r => r.unidad).filter(Boolean),
+    ...state.viajes.map(v => v.unidad).filter(Boolean),
+  ])].sort();
 
-  const mesesOrden = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-  meses.sort((a,b) => mesesOrden.indexOf(a) - mesesOrden.indexOf(b));
+  meses.sort((a,b) => MESES_ORDEN.indexOf(a) - MESES_ORDEN.indexOf(b));
 
   llenarSelect("filtro-razon", razones, "Todas");
   llenarSelect("filtro-mes", meses, "Todos");
@@ -147,32 +160,23 @@ function aplicarFiltros() {
     return true;
   });
 
-  // Alertas: filtrar por mes (usando la fecha YYYY-MM) y unidad corta
   const alertasF = state.alertas.filter(a => {
-    if (f.razon !== "todas") {
-      // Las alertas son todas METGA por recurso
-      const razonAlerta = (a.recurso || "").includes("MEGA") ? "METGA" : "TESON";
-      if (razonAlerta !== f.razon) return false;
-    }
+    if (f.razon !== "todas" && getRazonAlerta(a.unidad_corta) !== f.razon) return false;
     if (f.mes !== "todos") {
       const nombreMes = mesNumeroANombre(a.fecha);
       if (nombreMes !== f.mes) return false;
     }
     if (f.unidad !== "todas" && a.unidad_corta !== f.unidad) return false;
+    // Filtrar outliers de velocidad en el filtrado base
+    if (a.velocidad_kmh && a.velocidad_kmh > VEL_MAX_VALIDA) return false;
     return true;
   });
 
   return { viajes: viajesF, reportes: reportesF, alertas: alertasF };
 }
 
-function mesNumeroANombre(fechaISO) {
-  if (!fechaISO) return null;
-  const mes = parseInt(fechaISO.slice(5, 7));
-  return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][mes - 1];
-}
-
 // ============================================
-// RENDERIZAR TODO
+// RENDERIZAR
 // ============================================
 function renderizarTodo() {
   const f = aplicarFiltros();
@@ -185,16 +189,15 @@ function renderizarTodo() {
 // KPIs
 // ============================================
 function renderKPIs(f) {
-  const viajesValidos = f.viajes; // Incluir todos, incluso VACIO SPOT
-  const total = viajesValidos.length;
+  const totalViajes = f.viajes.length;
   const incidentes = f.reportes.length;
   const alertas = f.alertas.length;
 
-  document.getElementById("kpi-viajes").textContent = total.toLocaleString();
+  document.getElementById("kpi-viajes").textContent = totalViajes.toLocaleString();
   document.getElementById("kpi-reportes").textContent = incidentes.toLocaleString();
   document.getElementById("kpi-alertas").textContent = alertas.toLocaleString();
 
-  const tasa = total > 0 ? (incidentes / total * 100).toFixed(2) : "0.00";
+  const tasa = totalViajes > 0 ? (incidentes / totalViajes * 100).toFixed(2) : "0.00";
   document.getElementById("kpi-tasa").textContent = tasa + "%";
 
   const conversion = alertas > 0 ? (incidentes / alertas * 100).toFixed(3) : "0.00";
@@ -202,7 +205,7 @@ function renderKPIs(f) {
 
   // Top razón por tasa
   const porRazon = {};
-  viajesValidos.forEach(v => {
+  f.viajes.forEach(v => {
     const rs = v.razon_social || "N/A";
     porRazon[rs] = porRazon[rs] || { viajes: 0, incidentes: 0 };
     porRazon[rs].viajes++;
@@ -219,16 +222,12 @@ function renderKPIs(f) {
   });
   document.getElementById("kpi-top-razon").textContent = `${topRazon} (${(topTasa*100).toFixed(1)}%)`;
 
-  // Velocidad máxima
-  const velocidades = f.alertas.map(a => a.velocidad_kmh || 0).filter(v => v > 0);
-const velMax = velocidades.length > 0 ? Math.max(...velocidades) : 0;
-const velMaxReal = velocidades.filter(v => v <= 180).length > 0 
-  ? Math.max(...velocidades.filter(v => v <= 180)) 
-  : 0;
-document.getElementById("kpi-vel-max").innerHTML = 
-  `${velMaxReal.toLocaleString()} <span style="font-size:11px;color:#94a3b8;font-weight:400" title="Valor atípico registrado: ${velMax} km/h (probable error de GPS)">(máx: ${velMax})</span>`;
+  // Velocidad máxima (filtrando < VEL_MAX_VALIDA)
+  const velocidades = f.alertas.map(a => a.velocidad_kmh || 0).filter(v => v > 0 && v <= VEL_MAX_VALIDA);
+  const velMax = velocidades.length > 0 ? Math.max(...velocidades) : 0;
+  document.getElementById("kpi-vel-max").textContent = velMax.toLocaleString();
 
-  const inc100 = total > 0 ? (incidentes / total * 100).toFixed(1) : "0";
+  const inc100 = totalViajes > 0 ? (incidentes / totalViajes * 100).toFixed(1) : "0";
   document.getElementById("kpi-inc-100").textContent = inc100;
 }
 
@@ -247,13 +246,10 @@ function crearChart(id, config) {
 }
 
 function renderGraficos(f) {
-  const viajesValidos = f.viajes;
-
-  // ----- 1. Incidentes por Mes -----
-  const mesesOrden = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  // ---------- 1. Incidentes por Mes ----------
   const incMes = {};
   f.reportes.forEach(r => { if (r.mes) incMes[r.mes] = (incMes[r.mes] || 0) + 1; });
-  const mesesConDatos = mesesOrden.filter(m => incMes[m]);
+  const mesesConDatos = MESES_ORDEN.filter(m => incMes[m]);
   crearChart("chart-inc-mes", {
     type: "bar",
     data: {
@@ -261,98 +257,9 @@ function renderGraficos(f) {
       datasets: [{ label: "Incidentes", data: mesesConDatos.map(m => incMes[m]), backgroundColor: "#ef4444", borderRadius: 4 }]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      // ----- 16. Top 10 Velocidades Máximas por Unidad (Alertas GPS) -----
-  const velMaxUnidad = {};
-  f.alertas.forEach(a => {
-    if (!a.unidad_corta || !a.velocidad_kmh) return;
-    // Ignorar outliers > 180 km/h (probables errores de GPS)
-    if (a.velocidad_kmh > 180) return;
-    const u = a.unidad_corta;
-    if (!velMaxUnidad[u] || a.velocidad_kmh > velMaxUnidad[u]) {
-      velMaxUnidad[u] = a.velocidad_kmh;
-    }
-  });
-  const topVelMax = Object.entries(velMaxUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
-  crearChart("chart-vel-max-unidad", {
-    type: "bar",
-    data: {
-      labels: topVelMax.map(u => u[0]),
-      datasets: [{
-        label: "Velocidad Máx (km/h)",
-        data: topVelMax.map(u => u[1]),
-        backgroundColor: "#dc2626",
-        borderRadius: 4
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        datalabels: { anchor: "end", align: "right", color: "#fff" }
-      }
-    }
   });
 
-  // ----- 17. Top 10 Unidades con más Excesos Registrados -----
-  const excesosUnidad = {};
-  f.alertas.forEach(a => {
-    if ((a.tipo_alerta_normalizado || "").includes("exceso_velocidad")) {
-      const u = a.unidad_corta || "N/A";
-      excesosUnidad[u] = (excesosUnidad[u] || 0) + 1;
-    }
-  });
-  const topExcesosUnidad = Object.entries(excesosUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
-  crearChart("chart-excesos-unidad", {
-    type: "bar",
-    data: {
-      labels: topExcesosUnidad.map(u => u[0]),
-      datasets: [{
-        label: "Excesos registrados",
-        data: topExcesosUnidad.map(u => u[1]),
-        backgroundColor: "#f97316",
-        borderRadius: 4
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } }
-    }
-  });
-
-  // ----- 18. Top 10 Infractores de Exceso de Velocidad (Reportes) -----
-  const infractoresVel = {};
-  f.reportes.forEach(r => {
-    if ((r.tipo_reporte || "").toLowerCase().includes("exceso de velocidad")) {
-      const op = r.operador || "N/A";
-      infractoresVel[op] = (infractoresVel[op] || 0) + 1;
-    }
-  });
-  const topInfractoresVel = Object.entries(infractoresVel).sort((a,b) => b[1] - a[1]).slice(0, 10);
-  crearChart("chart-infractores-vel", {
-    type: "bar",
-    data: {
-      labels: topInfractoresVel.map(o => o[0].substring(0, 25)),
-      datasets: [{
-        label: "Reportes de exceso",
-        data: topInfractoresVel.map(o => o[1]),
-        backgroundColor: "#dc2626",
-        borderRadius: 4
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } }
-    }
-  });
-  });
-
-  // ----- 2. Tipos de Incidente -----
+  // ---------- 2. Tipos de Incidente ----------
   const tipos = {};
   f.reportes.forEach(r => { if (r.tipo_reporte) tipos[r.tipo_reporte] = (tipos[r.tipo_reporte] || 0) + 1; });
   const tiposOrden = Object.entries(tipos).sort((a,b) => b[1] - a[1]);
@@ -362,10 +269,10 @@ function renderGraficos(f) {
       labels: tiposOrden.map(t => t[0]),
       datasets: [{ data: tiposOrden.map(t => t[1]), backgroundColor: COLORS }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { font: { size: 10 } } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { font: { size: 10 } } }, datalabels: { display: false } } }
   });
 
-  // ----- 3. Incidentes por Unidad -----
+  // ---------- 3. Incidentes por Unidad ----------
   const incUnidad = {};
   f.reportes.forEach(r => { if (r.unidad) incUnidad[r.unidad] = (incUnidad[r.unidad] || 0) + 1; });
   const topUnidad = Object.entries(incUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
@@ -378,7 +285,7 @@ function renderGraficos(f) {
     options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 4. Top 10 Infractores (stacked por tipo) -----
+  // ---------- 4. Top 10 Infractores (stacked por tipo) ----------
   const porOperadorTipos = {};
   f.reportes.forEach(r => {
     const op = r.operador || "N/A";
@@ -405,11 +312,37 @@ function renderGraficos(f) {
       responsive: true,
       maintainAspectRatio: false,
       scales: { x: { stacked: true }, y: { stacked: true } },
-      plugins: { legend: { position: "bottom", labels: { font: { size: 9 } } } }
+      plugins: {
+        legend: { position: "bottom", labels: { font: { size: 9 } } },
+        datalabels: { display: false }
+      }
     }
   });
 
-  // ----- 5. Top 10 Operadores por Total -----
+  // ---------- 5. NUEVO: Top 10 Infractores de Exceso de Velocidad (Reportes) ----------
+  const infractoresVel = {};
+  f.reportes.forEach(r => {
+    if ((r.tipo_reporte || "").toLowerCase().includes("exceso de velocidad")) {
+      const op = r.operador || "N/A";
+      infractoresVel[op] = (infractoresVel[op] || 0) + 1;
+    }
+  });
+  const topInfractoresVel = Object.entries(infractoresVel).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  crearChart("chart-infractores-vel", {
+    type: "bar",
+    data: {
+      labels: topInfractoresVel.map(o => o[0].substring(0, 30)),
+      datasets: [{
+        label: "Reportes de exceso",
+        data: topInfractoresVel.map(o => o[1]),
+        backgroundColor: "#dc2626",
+        borderRadius: 4
+      }]
+    },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // ---------- 6. Top 10 Operadores por Total ----------
   const incOp = {};
   f.reportes.forEach(r => { if (r.operador) incOp[r.operador] = (incOp[r.operador] || 0) + 1; });
   const topOpTotal = Object.entries(incOp).sort((a,b) => b[1] - a[1]).slice(0, 10);
@@ -422,9 +355,9 @@ function renderGraficos(f) {
     options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 6. Top 10 Operadores por Tasa -----
+  // ---------- 7. Top 10 Operadores por Tasa ----------
   const viajesPorOp = {};
-  viajesValidos.forEach(v => { if (v.operador) viajesPorOp[v.operador] = (viajesPorOp[v.operador] || 0) + 1; });
+  f.viajes.forEach(v => { if (v.operador) viajesPorOp[v.operador] = (viajesPorOp[v.operador] || 0) + 1; });
   const tasaOp = Object.entries(incOp).map(([op, inc]) => {
     const via = viajesPorOp[op] || 0;
     return [op, via > 0 ? (inc / via * 100) : 0, inc, via];
@@ -434,32 +367,35 @@ function renderGraficos(f) {
     type: "bar",
     data: {
       labels: tasaOp.map(o => o[0].substring(0, 22)),
-      datasets: [{ label: "Tasa %", data: tasaOp.map(o => o[1].toFixed(2)), backgroundColor: "#ec4899", borderRadius: 4 }]
+      datasets: [{ label: "Tasa %", data: tasaOp.map(o => parseFloat(o[1].toFixed(2))), backgroundColor: "#ec4899", borderRadius: 4 }]
     },
     options: {
       indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { afterLabel: (ctx) => `Incidentes: ${tasaOp[ctx.dataIndex][2]} / Viajes: ${tasaOp[ctx.dataIndex][3]}` } } }
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { afterLabel: (ctx) => `Incidentes: ${tasaOp[ctx.dataIndex][2]} / Viajes: ${tasaOp[ctx.dataIndex][3]}` } }
+      }
     }
   });
 
-  // ----- 7. Viajes por Razón Social (doughnut) -----
+  // ---------- 8. Distribución Viajes por Razón Social ----------
   const viajesRS = {};
-  viajesValidos.forEach(v => { const rs = v.razon_social || "N/A"; viajesRS[rs] = (viajesRS[rs] || 0) + 1; });
+  f.viajes.forEach(v => { const rs = v.razon_social || "N/A"; viajesRS[rs] = (viajesRS[rs] || 0) + 1; });
   crearChart("chart-viajes-rs", {
     type: "doughnut",
     data: {
       labels: Object.keys(viajesRS),
       datasets: [{ data: Object.values(viajesRS), backgroundColor: ["#3b82f6", "#f59e0b", "#10b981", "#ef4444"] }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" }, datalabels: { display: false } } }
   });
 
-  // ----- 8. Viajes por Mes -----
+  // ---------- 9. Viajes por Mes ----------
   const viajesMes = {};
-  viajesValidos.forEach(v => { if (v.mes) viajesMes[v.mes] = (viajesMes[v.mes] || 0) + 1; });
-  const mesesViajes = mesesOrden.filter(m => viajesMes[m]);
+  f.viajes.forEach(v => { if (v.mes) viajesMes[v.mes] = (viajesMes[v.mes] || 0) + 1; });
+  const mesesViajes = MESES_ORDEN.filter(m => viajesMes[m]);
   crearChart("chart-viajes-mes", {
     type: "line",
     data: {
@@ -476,7 +412,7 @@ function renderGraficos(f) {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 9. Tasa Incidentes por Razón Social -----
+  // ---------- 10. Tasa Incidentes por Razón Social ----------
   const razonesRS = Object.keys(viajesRS);
   const tasaRS = razonesRS.map(rs => {
     const via = viajesRS[rs];
@@ -487,12 +423,12 @@ function renderGraficos(f) {
     type: "bar",
     data: {
       labels: razonesRS,
-      datasets: [{ label: "Tasa %", data: tasaRS.map(t => t.toFixed(2)), backgroundColor: "#10b981", borderRadius: 4 }]
+      datasets: [{ label: "Tasa %", data: tasaRS.map(t => parseFloat(t.toFixed(2))), backgroundColor: "#10b981", borderRadius: 4 }]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 10. Alertas por Tipo -----
+  // ---------- 11. Alertas por Tipo ----------
   const alertasTipo = {};
   f.alertas.forEach(a => {
     const t = a.tipo_alerta_normalizado || a.tipo_alerta || "Otro";
@@ -505,10 +441,10 @@ function renderGraficos(f) {
       labels: alertasTipoOrden.map(t => t[0]),
       datasets: [{ data: alertasTipoOrden.map(t => t[1]), backgroundColor: COLORS }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { font: { size: 10 } } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { font: { size: 10 } } }, datalabels: { display: false } } }
   });
 
-  // ----- 11. Top 10 Unidades con más Alertas -----
+  // ---------- 12. Top 10 Unidades con más Alertas ----------
   const alertasUnidad = {};
   f.alertas.forEach(a => { const u = a.unidad_corta || "N/A"; alertasUnidad[u] = (alertasUnidad[u] || 0) + 1; });
   const topAlertasUnidad = Object.entries(alertasUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
@@ -521,10 +457,10 @@ function renderGraficos(f) {
     options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 12. Alertas por Mes -----
+  // ---------- 13. Alertas por Mes ----------
   const alertasMes = {};
   f.alertas.forEach(a => { const m = mesNumeroANombre(a.fecha); if (m) alertasMes[m] = (alertasMes[m] || 0) + 1; });
-  const mesesAlertas = mesesOrden.filter(m => alertasMes[m]);
+  const mesesAlertas = MESES_ORDEN.filter(m => alertasMes[m]);
   crearChart("chart-alertas-mes", {
     type: "line",
     data: {
@@ -541,16 +477,16 @@ function renderGraficos(f) {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 13. Distribución de Velocidad (Excesos) -----
+  // ---------- 14. Distribución de Velocidad (Excesos) ----------
   const excesos = f.alertas.filter(a => (a.tipo_alerta_normalizado || "").includes("exceso_velocidad") && a.velocidad_kmh > 0);
-  const rangos = { "85-95": 0, "95-105": 0, "105-115": 0, "115-130": 0, "+130": 0 };
+  const rangos = { "85-95": 0, "95-105": 0, "105-115": 0, "115-125": 0, "125-140": 0 };
   excesos.forEach(a => {
     const v = a.velocidad_kmh;
     if (v < 95) rangos["85-95"]++;
     else if (v < 105) rangos["95-105"]++;
     else if (v < 115) rangos["105-115"]++;
-    else if (v <= 130) rangos["115-130"]++;
-    else rangos["+130"]++;
+    else if (v < 125) rangos["115-125"]++;
+    else rangos["125-140"]++;
   });
   crearChart("chart-vel-hist", {
     type: "bar",
@@ -561,13 +497,69 @@ function renderGraficos(f) {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 14. Cumplimiento de Políticas -----
+  // ---------- 15. NUEVO: Top 10 Velocidades Máximas por Unidad (< 140) ----------
+  const velMaxUnidad = {};
+  f.alertas.forEach(a => {
+    if (!a.unidad_corta || !a.velocidad_kmh) return;
+    if (a.velocidad_kmh > VEL_MAX_VALIDA) return;
+    const u = a.unidad_corta;
+    if (!velMaxUnidad[u] || a.velocidad_kmh > velMaxUnidad[u]) {
+      velMaxUnidad[u] = a.velocidad_kmh;
+    }
+  });
+  const topVelMax = Object.entries(velMaxUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  crearChart("chart-vel-max-unidad", {
+    type: "bar",
+    data: {
+      labels: topVelMax.map(u => u[0]),
+      datasets: [{
+        label: "Velocidad Máx (km/h)",
+        data: topVelMax.map(u => u[1]),
+        backgroundColor: "#dc2626",
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { x: { max: VEL_MAX_VALIDA } },
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: "end", align: "right", color: "#fff" }
+      }
+    }
+  });
+
+  // ---------- 16. NUEVO: Top 10 Unidades con más Excesos Registrados ----------
+  const excesosUnidad = {};
+  f.alertas.forEach(a => {
+    if ((a.tipo_alerta_normalizado || "").includes("exceso_velocidad")) {
+      const u = a.unidad_corta || "N/A";
+      excesosUnidad[u] = (excesosUnidad[u] || 0) + 1;
+    }
+  });
+  const topExcesosUnidad = Object.entries(excesosUnidad).sort((a,b) => b[1] - a[1]).slice(0, 10);
+  crearChart("chart-excesos-unidad", {
+    type: "bar",
+    data: {
+      labels: topExcesosUnidad.map(u => u[0]),
+      datasets: [{
+        label: "Excesos registrados",
+        data: topExcesosUnidad.map(u => u[1]),
+        backgroundColor: "#f97316",
+        borderRadius: 4
+      }]
+    },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // ---------- 17. Cumplimiento de Políticas ----------
   const tiposCumplimiento = [
     "No usar cinturón de seguridad",
     "Negarse a validacion EPP",
     "Fumar dentro de unidad",
     "Exceso de velocidad",
-    "No usar EPP en descarga segura",
   ];
   const cumplimiento = {};
   tiposCumplimiento.forEach(t => {
@@ -583,7 +575,7 @@ function renderGraficos(f) {
     options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
   });
 
-  // ----- 15. Top 10 Reincidentes en Cumplimiento -----
+  // ---------- 18. Top 10 Reincidentes en Cumplimiento ----------
   const cumplimientoOp = {};
   f.reportes.forEach(r => {
     const t = (r.tipo_reporte || "").toLowerCase();
@@ -615,20 +607,18 @@ function renderTabla() {
     datos = state.reportes;
     columnas = ["fecha_incidente","unidad","operador","tipo_reporte","estado","municipio","razon_social","hora"];
   } else if (t === "alertas") {
-    datos = state.alertas;
+    datos = state.alertas.filter(a => !a.velocidad_kmh || a.velocidad_kmh <= VEL_MAX_VALIDA);
     columnas = ["fecha_hora","unidad_corta","tipo_alerta","velocidad_kmh","ubicacion","es_duplicado_config"];
   } else if (t === "viajes") {
     datos = state.viajes;
-    columnas = ["fecha_inicio","no_viaje","unidad","operador","origen","destino","litros","cliente","razon_social","es_vacio_spot"];
+    columnas = ["fecha_inicio","no_viaje","unidad","operador","origen","destino","litros","cliente","razon_social"];
   }
 
-  // Filtro texto
   if (state.tabla.filtroTexto) {
     const q = state.tabla.filtroTexto.toLowerCase();
     datos = datos.filter(d => columnas.some(c => String(d[c] || "").toLowerCase().includes(q)));
   }
 
-  // Orden
   if (state.tabla.orden.campo) {
     const campo = state.tabla.orden.campo;
     const asc = state.tabla.orden.asc;
@@ -641,7 +631,6 @@ function renderTabla() {
     });
   }
 
-  // Paginación
   const total = datos.length;
   const porPagina = state.tabla.porPagina;
   const totalPags = Math.ceil(total / porPagina) || 1;
@@ -649,14 +638,12 @@ function renderTabla() {
   const inicio = (state.tabla.pagina - 1) * porPagina;
   const datosPag = datos.slice(inicio, inicio + porPagina);
 
-  // Header
   const thead = document.getElementById("tabla-header");
   thead.innerHTML = columnas.map(c => {
     const flecha = state.tabla.orden.campo === c ? (state.tabla.orden.asc ? " ▲" : " ▼") : "";
     return `<th data-campo="${c}" class="px-3 py-2 text-left text-xs">${c}${flecha}</th>`;
   }).join("");
 
-  // Body
   const tbody = document.getElementById("tabla-body");
   tbody.innerHTML = datosPag.map(d => {
     return "<tr class='border-b hover:bg-blue-50'>" + columnas.map(c => {
@@ -670,12 +657,10 @@ function renderTabla() {
     }).join("") + "</tr>";
   }).join("");
 
-  // Info
   document.getElementById("tabla-info").textContent =
     `Mostrando ${inicio + 1}-${Math.min(inicio + porPagina, total)} de ${total.toLocaleString()} registros`;
   document.getElementById("pag-num").textContent = `${state.tabla.pagina} / ${totalPags}`;
 
-  // Eventos de sorting
   thead.querySelectorAll("th").forEach(th => {
     th.onclick = () => {
       const campo = th.dataset.campo;
