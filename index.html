@@ -6,7 +6,7 @@
   <title>Dashboard KPIs - METGA</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <style>
     .chart-container { position: relative; height: 320px; }
     .chart-sm { position: relative; height: 220px; }
@@ -14,14 +14,12 @@
     .tab-inactive { color: #64748b; }
     table.sortable th { cursor: pointer; user-select: none; }
     table.sortable th:hover { background-color: #f1f5f9; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800">
 
-  <!-- Header -->
   <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
     <div class="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
       <div>
@@ -38,7 +36,6 @@
     </div>
   </header>
 
-  <!-- Progreso alertas -->
   <div id="progreso" class="hidden bg-blue-50 border-b border-blue-200">
     <div class="max-w-[1600px] mx-auto px-6 py-2 flex items-center gap-4 text-xs">
       <span id="progreso-texto" class="text-blue-800">Cargando alertas GPS...</span>
@@ -51,7 +48,6 @@
   <!-- TAB DASHBOARD -->
   <section id="tab-dashboard" class="max-w-[1600px] mx-auto px-6 py-6">
 
-    <!-- Filtros -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
       <div class="flex flex-wrap gap-4 items-end">
         <div class="flex-1 min-w-[180px]">
@@ -78,13 +74,10 @@
             <option value="todas">Todas</option>
           </select>
         </div>
-        <button id="btn-reset" class="px-4 py-2 bg-slate-700 text-white rounded text-sm hover:bg-slate-800">
-          Reset
-        </button>
+        <button id="btn-reset" class="px-4 py-2 bg-slate-700 text-white rounded text-sm hover:bg-slate-800">Reset</button>
       </div>
     </div>
 
-    <!-- KPIs Principales -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-white p-5 rounded-lg shadow border-l-4 border-blue-500">
         <p class="text-xs text-gray-500">Viajes Totales</p>
@@ -104,7 +97,6 @@
       </div>
     </div>
 
-    <!-- KPIs Secundarios -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <div class="bg-white p-4 rounded-lg shadow">
         <p class="text-xs text-gray-500">% Alertas → Incidente</p>
@@ -124,32 +116,32 @@
       </div>
     </div>
 
-    <!-- Sección 1: Incidentes -->
+    <!-- SECCIÓN 1: INCIDENTES -->
     <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">📋 Análisis de Incidentes</h2>
-   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Mes</h3>
-    <div class="chart-container"><canvas id="chart-inc-mes"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Tipos de Incidente</h3>
-    <div class="chart-container"><canvas id="chart-tipos"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Unidad (Top 10)</h3>
-    <div class="chart-container"><canvas id="chart-inc-unidad"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Infractores (por tipo)</h3>
-    <div class="chart-container"><canvas id="chart-infractores"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Infractores de Exceso de Velocidad (Reportes)</h3>
-    <div class="chart-container"><canvas id="chart-infractores-vel"></canvas></div>
-  </div>
-</div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Mes</h3>
+        <div class="chart-container"><canvas id="chart-inc-mes"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Tipos de Incidente</h3>
+        <div class="chart-container"><canvas id="chart-tipos"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Incidentes por Unidad (Top 10)</h3>
+        <div class="chart-container"><canvas id="chart-inc-unidad"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Infractores (por tipo)</h3>
+        <div class="chart-container"><canvas id="chart-infractores"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow lg:col-span-2">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Infractores de Exceso de Velocidad (Reportes)</h3>
+        <div class="chart-container"><canvas id="chart-infractores-vel"></canvas></div>
+      </div>
+    </div>
 
-    <!-- Sección 2: Operadores -->
+    <!-- SECCIÓN 2: OPERADORES -->
     <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">👤 Análisis de Operadores</h2>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <div class="bg-white p-5 rounded-lg shadow">
@@ -157,12 +149,12 @@
         <div class="chart-container"><canvas id="chart-op-total"></canvas></div>
       </div>
       <div class="bg-white p-5 rounded-lg shadow">
-        <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Operadores (Tasa por viaje)</h3>
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Operadores (Tasa por viaje, mín. 5 viajes)</h3>
         <div class="chart-container"><canvas id="chart-op-tasa"></canvas></div>
       </div>
     </div>
 
-    <!-- Sección 3: Viajes -->
+    <!-- SECCIÓN 3: VIAJES -->
     <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">🚚 Análisis de Viajes</h2>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
       <div class="bg-white p-5 rounded-lg shadow">
@@ -179,36 +171,36 @@
       </div>
     </div>
 
-   <!-- Sección 4: Alertas GPS -->
-<h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">📡 Análisis de Alertas GPS</h2>
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Tipo</h3>
-    <div class="chart-container"><canvas id="chart-alertas-tipo"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Unidades con más Alertas</h3>
-    <div class="chart-container"><canvas id="chart-alertas-unidad"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Mes</h3>
-    <div class="chart-container"><canvas id="chart-alertas-mes"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">Distribución de Velocidad (Excesos)</h3>
-    <div class="chart-container"><canvas id="chart-vel-hist"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Velocidades Máximas por Unidad</h3>
-    <div class="chart-container"><canvas id="chart-vel-max-unidad"></canvas></div>
-  </div>
-  <div class="bg-white p-5 rounded-lg shadow">
-    <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Unidades con más Excesos Registrados</h3>
-    <div class="chart-container"><canvas id="chart-excesos-unidad"></canvas></div>
-  </div>
-</div>
+    <!-- SECCIÓN 4: ALERTAS GPS -->
+    <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">📡 Análisis de Alertas GPS</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Tipo</h3>
+        <div class="chart-container"><canvas id="chart-alertas-tipo"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Top 10 Unidades con más Alertas</h3>
+        <div class="chart-container"><canvas id="chart-alertas-unidad"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Alertas por Mes</h3>
+        <div class="chart-container"><canvas id="chart-alertas-mes"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">Distribución de Velocidad (Excesos &lt; 140 km/h)</h3>
+        <div class="chart-container"><canvas id="chart-vel-hist"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Velocidades Máximas por Unidad (&lt; 140 km/h)</h3>
+        <div class="chart-container"><canvas id="chart-vel-max-unidad"></canvas></div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow">
+        <h3 class="text-sm font-semibold mb-3 text-slate-700">🔥 Top 10 Unidades con más Excesos Registrados</h3>
+        <div class="chart-container"><canvas id="chart-excesos-unidad"></canvas></div>
+      </div>
+    </div>
 
-    <!-- Sección 5: Cumplimiento -->
+    <!-- SECCIÓN 5: CUMPLIMIENTO -->
     <h2 class="text-lg font-bold mb-3 mt-8 text-slate-700">🛡️ Cumplimiento de Políticas</h2>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <div class="bg-white p-5 rounded-lg shadow">
